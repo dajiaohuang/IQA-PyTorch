@@ -1,0 +1,112 @@
+# general settings
+# name: debug_DBCNN_LIVEC
+name: 50_single_NIMA_vgg_AGCIQA-3K
+name: 50_single_NIMA_vgg_AGCIQA-3K
+model_type: GeneralIQAModel 
+num_gpu: 1  # set num_gpu: 0 for cpu mode
+manual_seed: 123
+split_num: 10
+save_final_results_path: './experiments/50_single_NIMA_vgg_AGCIQA-3K/single_NIMA_vgg_AGIQA-3K_result.txt'
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: AGIQA-3K
+    type: GeneralNRDataset 
+    dataroot_target: './datasets/AGIQA-3K'
+    meta_info_file: './datasets/meta_info/meta_info_AGIQA-3K.csv'
+    split_file: './datasets/meta_info/AGIQA-3K.pkl'
+    mos_range: [0, 5]
+    lower_better: false 
+    mos_normalize: true
+
+    augment:
+      hflip: true
+      random_crop: 224
+    img_range: 1
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 4
+    batch_size_per_gpu: 40
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+
+  val:
+    name: AGIQA-3K
+    type: GeneralNRDataset 
+    dataroot_target: './datasets/AGIQA-3K/'
+    meta_info_file: './datasets/meta_info/meta_info_AGIQA-3K.csv'
+    split_file: './datasets/meta_info/AGIQA-3K.pkl'
+    mos_range: [0, 5]
+    lower_better: false 
+    mos_normalize: true
+
+
+# network structures
+network:
+  type: NIMA
+  base_model_name: vgg16
+  pretrained: false
+
+# path
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state: ~
+
+# training settings
+train:
+  optim:
+    type: AdamW
+    lr: !!float 1e-4
+    weight_decay: !!float 5e-4
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [5, 10]
+    gamma: 0.1
+
+  total_epoch: 50 # small test 
+  warmup_iter: -1  # no warm up
+
+  # losses
+  mos_loss_opt:
+    type: MSELoss
+    loss_weight: !!float 1.0
+
+  metric_loss_opt:
+    type: PLCCLoss
+    loss_weight: !!float 1.0
+
+# validation settings
+val:
+  val_freq: !!float 100
+  save_img: false
+  pbar: true
+
+  key_metric: srcc # if this metric improve, update all metrics. If not specified, each best metric results will be updated separately
+  metrics:
+    srcc:
+      type: calculate_srcc
+
+    plcc:
+      type: calculate_plcc
+
+    krcc:
+      type: calculate_krcc
+
+# logging settings
+logger:
+  print_freq: 20
+  save_checkpoint_freq: !!float 5e9
+  save_latest_freq: !!float 5e2
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
